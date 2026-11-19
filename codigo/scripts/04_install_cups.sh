@@ -20,11 +20,17 @@ echo "[*] Instalando CUPS y módulo de impresora virtual PDF..."
 apt install -y cups cups-client printer-driver-cups-pdf
 
 echo "[*] Agregando usuario '${REAL_USER}' al grupo lpadmin..."
-usermod -aG lpadmin "${REAL_USER}"
+usermod -aG lpadmin "${REAL_USER}" || true
+
+echo "[*] Iniciando y asegurando el servicio CUPS..."
+systemctl start cups cups.socket
+systemctl enable cups cups.socket
+sleep 2
 
 echo "[*] Configurando CUPS para acceso remoto en el puerto 631..."
-# Permitir escuchar en todas las interfaces
-cupsctl --remote-admin --remote-any --share-printers
+cupsctl --remote-admin --remote-any --share-printers || true
+systemctl restart cups
+sleep 2
 
 echo "[*] Creando cola de impresión virtual para logística: 'TechMarket_Guias_Despacho'..."
 lpadmin -p "TechMarket_Guias_Despacho" \
@@ -32,7 +38,7 @@ lpadmin -p "TechMarket_Guias_Despacho" \
         -v "cups-pdf:/" \
         -D "Impresora de Guías y Facturación TechMarket Armenia" \
         -L "Bodega Principal - Muelle de Despachos" \
-        -o printer-is-shared=true
+        -o printer-is-shared=true 2>/dev/null || true
 
 echo "[*] Creando cola de impresión para facturación corporativa..."
 lpadmin -p "TechMarket_Facturacion_DEX" \
@@ -40,9 +46,11 @@ lpadmin -p "TechMarket_Facturacion_DEX" \
         -v "file:///dev/null" \
         -D "Cola Raw para Impresión de Manifiestos Aduaneros DIAN" \
         -L "Oficina Administrativa" \
-        -o printer-is-shared=true
+        -o printer-is-shared=true 2>/dev/null || true
 
-echo "[*] Reiniciando y habilitando servicio cups..."
+cupsenable TechMarket_Guias_Despacho 2>/dev/null || true
+cupsaccept TechMarket_Guias_Despacho 2>/dev/null || true
+
 systemctl restart cups
 systemctl enable cups
 

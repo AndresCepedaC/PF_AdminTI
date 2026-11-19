@@ -19,7 +19,7 @@ CONFIG_DIR="${SCRIPT_DIR}/../configs"
 REAL_USER="${SUDO_USER:-$USER}"
 
 echo "[*] Instalando Samba y cliente smbclient..."
-apt install -y samba smbclient
+DEBIAN_FRONTEND=noninteractive apt install -y samba smbclient
 
 echo "[*] Creando grupos departamentales de TechMarket..."
 groupadd -f admin
@@ -40,9 +40,9 @@ create_tech_user() {
     local pass="TechMarket2026*"
 
     if ! id "${username}" &>/dev/null; then
-        useradd -M -s /usr/sbin/nologin -g "${group}" "${username}"
+        useradd -M -s /usr/sbin/nologin -g "${group}" "${username}" || true
     fi
-    echo -e "${pass}\n${pass}" | smbpasswd -a -s "${username}"
+    echo -e "${pass}\n${pass}" | smbpasswd -a -s "${username}" || true
     echo "[+] Usuario Samba '${username}' creado en grupo '${group}' (Clave: ${pass})"
 }
 
@@ -79,11 +79,12 @@ if [[ -f "${CONFIG_DIR}/smb.conf" ]]; then
     cp "${CONFIG_DIR}/smb.conf" /etc/samba/smb.conf
 fi
 
-echo "[*] Reiniciando y habilitando servicios smbd y nmbd..."
-systemctl restart smbd nmbd
-systemctl enable smbd nmbd
+echo "[*] Reiniciando y habilitando servicios smbd..."
+systemctl restart smbd || true
+systemctl restart nmbd 2>/dev/null || true
+systemctl enable smbd 2>/dev/null || true
 
 echo "[✓] Verificación de recursos compartidos disponibles en Samba:"
-smbclient -L localhost -N || true
+smbclient -L localhost -N 2>/dev/null || true
 
-echo "[✓] Servidor Samba listo. Acceso desde Windows: \\\\<IP_SERVIDOR>\\general"
+echo "[✓] Servidor Samba listo. Acceso desde Windows/Mac: \\\\<IP_SERVIDOR>\\general"
