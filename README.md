@@ -2,7 +2,8 @@
 ### Universidad del Quindío — Facultad de Ingeniería de Sistemas y Computación
 **Semestre:** 2026-1  
 **Valor:** 20% Nota Final  
-**Estudiante:** Andrés Cepeda (`theinge`)  
+**Estudiante:** Andrés Felipe Cepeda Castrillón  
+**Identificación:** C.C. 1139874140  
 **Organización Seleccionada:** TECHMARKET S.A.S. (Importación de Tecnología USA & China y Reventa Local)  
 **Enfoque:** Implementación integral de servicios de infraestructura con Dokploy PaaS y servicios Linux tradicionales.
 

@@ -5,7 +5,8 @@
 **Programa:** Ingeniería de Sistemas y Computación  
 **Asignatura:** Administración de Infraestructura de TI  
 **Semestre:** 2026-1  
-**Estudiante:** Andrés Cepeda (`theinge`)  
+**Estudiante:** Andrés Felipe Cepeda Castrillón  
+**Identificación:** C.C. 1139874140  
 **Empresa Seleccionada:** TECHMARKET S.A.S.  
 
 ---
@@ -89,7 +90,7 @@ Para garantizar el principio de menor privilegio, se establecen los siguientes g
 
 | Grupo | Miembros | Carpeta Samba Asignada | Permisos | Propósito |
 | :--- | :--- | :--- | :--- | :--- |
-| `admin` | `admin_tech`, `theinge` | `/srv/samba/techmarket/general` y raíz | R/W completo | Administración integral de la infraestructura |
+| `admin` | `admin_tech`, `andres_cepeda` | `/srv/samba/techmarket/general` y raíz | R/W completo | Administración integral de la infraestructura |
 | `ventas` | `juan_ventas` | `/srv/samba/techmarket/ventas` | R/W en ventas, R en general | Listas de precios, pedidos de clientes locales |
 | `compras` | `carlos_import` | `/srv/samba/techmarket/importaciones`| R/W en importaciones | Documentos aduaneros, packing lists de USA/China |
 | `bodega` | `pedro_bodega` | `/srv/samba/techmarket/despachos` | R/W en despachos, impresión CUPS | Guías de despacho, seriales físicos de mercancía |

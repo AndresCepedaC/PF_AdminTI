@@ -5,7 +5,8 @@
 **Facultad:** Ingeniería de Sistemas y Computación  
 **Institución:** Universidad del Quindío  
 **Semestre:** 2026-1  
-**Estudiante:** Andrés Cepeda (`theinge`)  
+**Estudiante:** Andrés Felipe Cepeda Castrillón  
+**Identificación:** C.C. 1139874140  
 **Empresa:** TECHMARKET S.A.S. (Importación de Tecnología desde China y USA)  
 **Entorno Operativo:** Ubuntu Server 24.04/26.04 LTS (`aarch64` en Apple M1)  
 **IP Asignada en Red Puente (Bridged):** `192.168.1.109`  
