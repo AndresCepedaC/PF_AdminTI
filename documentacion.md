@@ -1,434 +1,154 @@
 # TECHMARKET S.A.S. - Infraestructura de TI
-## Documentación Técnica Completa y Guía de Operaciones (Semana 4)
+## Documentación Técnica Completa, Guía de Operaciones y Evidencias (Semana 4)
 
 **Asignatura:** Administración de Infraestructura de TI  
 **Facultad:** Ingeniería de Sistemas y Computación  
 **Institución:** Universidad del Quindío  
 **Semestre:** 2026-1  
+**Estudiante:** Andrés Cepeda (`theinge`)  
 **Empresa:** TECHMARKET S.A.S. (Importación de Tecnología desde China y USA)  
-**Entorno Operativo:** Ubuntu Server 22.04/24.04 LTS (2 vCPUs, 4GB RAM, 40GB Disco) en Red Modo Puente (*Bridged*)  
+**Entorno Operativo:** Ubuntu Server 24.04/26.04 LTS (`aarch64` en Apple M1)  
+**IP Asignada en Red Puente (Bridged):** `192.168.1.109`  
 
 ---
 
-## 1. Introducción y Arquitectura General
+## 1. Resumen Ejecutivo y Arquitectura del Sistema
 
-El presente documento constituye la memoria técnica y el manual de operaciones para la infraestructura de TI de **TECHMARKET S.A.S.**, empresa dedicada a la importación mayorista y reventa local de componentes y productos tecnológicos de alta demanda procedentes de Shenzhen (China) y Miami (USA).
+**TECHMARKET S.A.S.** es una empresa especializada en la importación directa y distribución mayorista de dispositivos tecnológicos de vanguardia procedentes de Shenzhen (China) y Miami (USA). Para su centro de operaciones en Armenia (Quindío), se diseñó e implementó una infraestructura de TI híbrida y resiliente sobre **Ubuntu Server 24.04/26.04 LTS**, virtualizado sobre **UTM** en hardware Apple Silicon.
 
-La solución unifica dos paradigmas complementarios:
-1. **Plataforma PaaS Moderna (Dokploy & Traefik):** Aislamiento en contenedores para el catálogo web y la base de datos transaccional con orquestación, métricas en tiempo real y terminación TLS/SSL automática.
-2. **Servicios de Red Nativos Linux:** Implementación de servicios corporativos de almacenamiento, impresión, autenticación y tiempo (NTP, NFS, NIS, CUPS y Samba) con directivas estrictas de seguridad mediante Firewall UFW.
-
----
-
-## 2. Preparación del Sistema Base e Infraestructura de Red
-
-### 2.1 Especificaciones de la Máquina Virtual
-* **Hipervisor:** VMware Workstation / VirtualBox.
-* **Sistema Operativo:** Ubuntu Server 22.04 LTS o 24.04 LTS.
-* **Recursos:** 2 vCPUs, 4096 MB RAM, 40 GB de disco virtual.
-* **Adaptador de Red:** Modo Puente (*Bridged*), permitiendo que la máquina virtual reciba una dirección IP accesible directamente desde los clientes de la red física local.
-
-### 2.2 Configuración del Hostname y Paquetes Esenciales
-```bash
-# Definir hostname corporativo
-sudo hostnamectl set-hostname srv-infra.techmarket.local
-
-# Actualización de repositorios
-sudo apt update && sudo apt upgrade -y
-
-# Herramientas esenciales
-sudo apt install -y curl wget git vim net-tools ufw htop rsync unzip ca-certificates gnupg
-```
+La plataforma resuelve dos necesidades operativas fundamentales:
+1. **Capa Web y PaaS Moderna (Dokploy & Traefik):** Aislamiento en microservicios contenerizados (Docker) para el portal corporativo de ventas y la base de datos transaccional PostgreSQL 16, con gestión de tráfico web y proxy inverso.
+2. **Capa de Servicios de Red Linux Tradicionales:** Servicios corporativos de baja latencia ejecutados en el sistema operativo host (NTP/Chrony, NFSv4, NIS Master, CUPS IPP y Samba CIFS), asegurados por un Firewall perimetral UFW y copias de seguridad programadas con Cron.
 
 ---
 
-## 3. Procedimientos de Instalación y Verificación por Servicio
+## 2. Topología de Red y Matriz de Servicios Verificados
+
+| Servicio | Identificador | Dirección IP / Puerto | Protocolo | Estado Verificado | Rol en TECHMARKET |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Panel Dokploy** | `dokploy` | `http://192.168.1.109:3000` | TCP / HTTP | **100% Operativo** | Gestión PaaS de aplicaciones y métricas de servidor |
+| **Portal Web** | `techmarket_web_app` | `http://192.168.1.109:8080` | TCP / HTTP | **100% Operativo** | Catálogo interactivo de laptops, GPUs y periféricos |
+| **Base de Datos** | `techmarket_postgres` | `192.168.1.109:5432` | TCP / PGSQL | **Healthy** | Tabla `productos` con stock, SKUs y precios COP |
+| **Servidor NTP** | `chrony` | `192.168.1.109:123` | UDP / NTP | **Sincronizado (Stratum 2)** | Sellos de tiempo para facturación y auditoría aduanera |
+| **Servidor NFS** | `nfs-kernel-server` | `192.168.1.109:2049` | TCP / NFSv4 | **Exportando** | Carpetas `/srv/nfs/techmarket/{general,catalogos,backups}` |
+| **Servidor NIS** | `ypserv / ypbind` | `192.168.1.109:111` | TCP/UDP RPC | **Master Activo** | Dominio `techmarket.local` con usuario `tecnico_techmarket` |
+| **Servidor CUPS** | `cupsd` | `http://192.168.1.109:631` | TCP / IPP | **3 Impresoras Listas** | Colas `TechMarket_Guias_Despacho` y `Facturacion_DEX` |
+| **Servidor Samba**| `smbd` | `\\192.168.1.109\general` | TCP / 445 SMB| **Autenticado** | Comparticiones por área: `ventas`, `importaciones`, `despachos` |
+| **Firewall UFW** | `ufw` | Todas las interfaces | Kernel Netfilter | **Active (Default Deny)** | Protección estricta con apertura selectiva de puertos |
+| **Backup Diario**| `cron / bash` | Local + NFS | Script Cron | **Automatizado (02:00 AM)** | Respaldo comprimido de configs y volcados SQL |
 
 ---
 
-### 3.1 Dokploy (Plataforma PaaS y Reverse Proxy Traefik)
+## 3. Evidencias de Funcionamiento por Servicio
 
-Dokploy centraliza la administración de contenedores Docker y el enrutamiento web con Traefik.
+### 3.1 Dokploy (Plataforma PaaS y Administración de Contenedores)
+El panel administrativo de Dokploy (versión `v0.31.4`) está desplegado y operativo en el puerto 3000, vinculado a la cuenta corporativa `andresf.cepedac@uqvirtual.edu.co`:
 
-#### Instalación:
-```bash
-# Instalar Docker Engine
-curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+![Dokploy Panel](capturas/01_dokploy_panel.png)
 
-# Instalar Dokploy de forma desatendida
-curl -sSL https://dokploy.com/install.sh | sh
+```text
+# Estado de contenedores base de Dokploy verificado en consola:
+CONTAINER ID   IMAGE                     STATUS                    PORTS                    NAMES
+ebe3386b252c   traefik:v3.7.19           Up (healthy)              0.0.0.0:80->80, 443->443 dokploy-traefik
+b9f231054a34   dokploy/dokploy:v0.31.4   Up (healthy)              0.0.0.0:3000->3000       dokploy
+d5df0555d3be   postgres:16               Up (healthy)              5432/tcp                 dokploy-postgres
 ```
-
-#### Verificación y Acceso:
-```bash
-# Validar que los contenedores de Dokploy y Traefik estén en ejecución
-sudo docker ps --filter "name=dokploy"
-```
-1. Abrir en el navegador: `http://<IP_SERVIDOR>:3000`.
-2. Crear la cuenta de administrador inicial de TechMarket (`admin@techmarket.local` / `TechMarket2026*`).
-3. El panel mostrará uso de memoria RAM, carga de CPU y el listado de aplicaciones y bases de datos.
-
-![Panel Dokploy](capturas/01_dokploy_panel.png)
 
 ---
 
-### 3.2 Base de Datos PostgreSQL (en Dokploy / Docker)
+### 3.2 Portal Web y Base de Datos PostgreSQL
+La aplicación web desarrollada a medida para TECHMARKET se encuentra disponible en `http://192.168.1.109:8080`, conectada en tiempo real a PostgreSQL:
 
-Almacena el catálogo de importaciones, referencias SKU, países de origen (USA/China), precios en COP y stock en bodega.
+![Portal Web TechMarket](capturas/02_web_app.png)
 
-#### Despliegue:
-En el panel de Dokploy:
-1. Ir a **Databases** → **Create Database** → Seleccionar **PostgreSQL** (versión 16).
-2. Asignar los siguientes parámetros:
-   * **Nombre:** `techmarket-postgres`
-   * **Database:** `techmarket_db`
-   * **User:** `techmarket_admin`
-   * **Password:** `TechMarket2026Secure!`
-   * **Puerto expuesto:** `5432`
+![Catálogo de Productos y Precios](capturas/03_web_catalogo.png)
 
-*O alternativamente mediante Docker Compose directo:*
-```bash
-cd codigo/web-app
-sudo docker compose up -d db
-```
-
-#### Comandos de Verificación:
-```bash
-# Verificar estado y salud del contenedor
-sudo docker ps --filter "name=postgres"
-
-# Conectarse e inspeccionar las tablas creadas
-sudo docker exec -it techmarket_postgres psql -U techmarket_admin -d techmarket_db -c "\dt"
-sudo docker exec -it techmarket_postgres psql -U techmarket_admin -d techmarket_db -c "SELECT id, name, origin, price_cop, stock, sku FROM productos LIMIT 5;"
-```
-
-![PostgreSQL Dokploy](capturas/03_postgres_dokploy.png)
+* **Persistencia Validada:** Cada producto importado (desde Shenzhen o Miami) cuenta con su SKU único, categoría, stock en bodega y precio en pesos colombianos (COP).
+* **Conectividad:** Indicador superior activo `PostgreSQL: Online (5432)` confirmando el canal transaccional directo con el contenedor `techmarket_postgres`.
 
 ---
 
-### 3.3 Servicio Web Corporativo TechMarket (HTTPS)
+### 3.3 Servidor de Impresión CUPS (Puerto 631)
+La interfaz web de CUPS en `http://192.168.1.109:631/printers` administra las colas de impresión para los despachos logísticos:
 
-Portal institucional y catálogo de productos importados para clientes mayoristas y minoristas.
+![CUPS Printers](capturas/04_cups_printers.png)
 
-#### Despliegue en Dokploy:
-1. En Dokploy, ir a **Applications** → **Create Application**.
-2. **Source:** Repositorio Git local o compilación con Dockerfile ubicado en `codigo/web-app`.
-3. **Variables de Entorno:**
-   ```env
-   PORT=8080
-   DB_HOST=techmarket_postgres (o la IP del servidor)
-   DB_PORT=5432
-   DB_USER=techmarket_admin
-   DB_PASSWORD=TechMarket2026Secure!
-   DB_NAME=techmarket_db
-   NODE_ENV=production
-   ```
-4. **Dominio:** Asignar `app.techmarket.local` o tu dominio público / duckdns con SSL (Let's Encrypt o certificado autofirmado generado por Traefik).
-
-*Despliegue directo de prueba:*
-```bash
-cd codigo/web-app
-sudo docker compose up -d --build
-```
-
-#### Verificación:
-1. Ingresar en el navegador a: `http://<IP_SERVIDOR>:8080` o `https://<DOMINIO>`.
-2. Verificar que el indicador muestre `PostgreSQL: Online (5432)`.
-3. Probar la búsqueda y filtrado de productos por categoría y país de origen (USA / China).
-4. Probar la creación de un nuevo producto con el botón **+ Nuevo Producto** y verificar su persistencia en PostgreSQL.
-
-![Web HTTPS TechMarket](capturas/02_web_https.png)
+* **`TechMarket_Guias_Despacho`:** Cola Raw/PDF ubicada en "Bodega Principal - Muelle de Despachos" para emisión de rótulos de transporte (Servientrega, Interrapidísimo).
+* **`TechMarket_Facturacion_DEX`:** Cola dedicada a manifiestos de aduana DIAN en la oficina administrativa.
 
 ---
 
-### 3.4 Servicio NTP (Servidor de Tiempo)
+### 3.4 Compartición de Archivos Multiplataforma (Samba SMB) desde macOS
+Prueba de acceso real realizada desde el Finder de macOS mediante el protocolo `smb://192.168.1.109/general`:
 
-Garantiza la sincronización horaria de toda la organización (aduanas, logs y facturación).
+![Samba Finder](capturas/05_samba_finder.png)
 
-#### Instalación y Configuración:
-```bash
-sudo apt install -y ntp
-```
-Editar `/etc/ntp.conf`:
-```conf
-driftfile /var/lib/ntp/ntp.drift
-server 0.south-america.pool.ntp.org iburst
-server 1.south-america.pool.ntp.org iburst
-server pool.ntp.org iburst
-
-restrict -4 default kod notrap nomodify nopeer noquery limited
-restrict 127.0.0.1
-restrict 192.168.0.0 mask 255.255.0.0 nomodify notrap
-```
-```bash
-sudo systemctl restart ntp
-sudo systemctl enable ntp
-```
-
-#### Comandos de Verificación:
-*En el Servidor:*
-```bash
-sudo ntpq -p
-```
-*(Debe verse una tabla de servidores remotos con asterisco `*` o cruz `+` indicando sincronización activa).*
-
-*En un Cliente Linux:*
-```bash
-# Probar consulta al servidor NTP
-ntpdate -q <IP_SERVIDOR>
-# o sincronizar hora del sistema
-sudo sntp -s <IP_SERVIDOR>
-```
-
-![Sincronización NTP](capturas/04_ntp_sync.png)
+* **Control de Acceso Granular:**
+  * Usuario `juan_ventas` (Grupo `ventas`): Acceso completo a cotizaciones y catálogo.
+  * Usuario `carlos_import` (Grupo `compras`): Acceso restringido a manifiestos aduaneros y packing lists en `[importaciones]`.
+  * Usuario `pedro_bodega` (Grupo `bodega`): Acceso a planillas de despacho en `[despachos]`.
 
 ---
 
-### 3.5 Servidor NFS (Compartición de Archivos para Linux)
+### 3.5 Consola de Verificación Unificada (NTP, NFS, NIS y Firewall UFW)
+La siguiente captura certifica la ejecución simultánea de los comandos de diagnóstico en el servidor Ubuntu:
 
-Permite montar volúmenes de almacenamiento remoto en estaciones técnicas y servidores de respaldo.
+![Consola Servicios](capturas/06_servicios_consola_ntp_nfs_nis_ufw.png)
 
-#### Instalación y Configuración:
-```bash
-sudo apt install -y nfs-kernel-server
-
-# Crear directorios para TechMarket
-sudo mkdir -p /srv/nfs/techmarket/{general,catalogos,backups}
-sudo chown -R nobody:nogroup /srv/nfs/techmarket
-sudo chmod -R 777 /srv/nfs/techmarket
-```
-
-Editar `/etc/exports`:
-```exports
-/srv/nfs/techmarket/general     *(rw,sync,no_subtree_check,no_root_squash)
-/srv/nfs/techmarket/catalogos   *(rw,sync,no_subtree_check,no_root_squash)
-/srv/nfs/techmarket/backups     *(rw,sync,no_subtree_check,no_root_squash)
-```
-
-```bash
-sudo exportfs -ra
-sudo systemctl restart nfs-kernel-server
-sudo systemctl enable nfs-kernel-server
-```
-
-#### Comandos de Verificación:
-*En el Servidor:*
-```bash
-sudo exportfs -v
-```
-
-*En la Máquina Cliente (Linux):*
-```bash
-sudo apt install -y nfs-common
-sudo mkdir -p /mnt/techmarket
-
-# Montar el recurso remoto
-sudo mount -t nfs <IP_SERVIDOR>:/srv/nfs/techmarket/general /mnt/techmarket
-
-# Verificar montaje y escribir un archivo de prueba
-df -h | grep nfs
-echo "Prueba desde cliente Linux" | sudo tee /mnt/techmarket/prueba_cliente.txt
-ls -la /mnt/techmarket/
-```
-
-![NFS Mount](capturas/05_nfs_mount.png)
+#### Análisis de la evidencia en consola:
+1. **NTP / Chrony (`chronyc sources -v`):**
+   * Servidor sincronizado activamente (`^*`) con el nodo nacional `0.co.ntp.edgeuno.com` (Stratum 2, Colombia).
+   * Servidores de respaldo (`^+`) `c.st1.ntp.br` (Stratum 1) y `a.ntp.netplanety.com.br` (Stratum 2).
+2. **NFS (`sudo exportfs -v`):**
+   * Exportaciones activas con opciones `rw,sync,no_subtree_check,no_root_squash` en `/srv/nfs/techmarket/general`, `/catalogos` y `/backups`.
+3. **NIS (`ypwhich` y `ypcat passwd`):**
+   * Servidor maestro enlazado en `127.0.0.1` dentro del dominio `techmarket.local`.
+   * Usuario corporativo centralizado `tecnico_techmarket` (UID 1001) resuelto correctamente por las llamadas RPC.
+4. **Firewall UFW (`sudo ufw status verbose`):**
+   * Estado `active` con política por defecto `deny (incoming)`.
+   * Puertos abiertos estrictamente para la operación: `22` (SSH), `80/443` (Traefik), `3000` (Dokploy), `8080` (Web), `123` (NTP), `631` (CUPS), `139/445` (Samba), `111` (RPC) y `2049` (NFS).
 
 ---
 
-### 3.6 Servidor NIS (Autenticación Centralizada)
+## 4. Guía de Solución de Problemas (Troubleshooting Documentado)
 
-Provee un dominio centralizado de credenciales (`techmarket.local`) para estaciones Linux.
+Durante el despliegue se identificaron y solucionaron los siguientes desafíos técnicos:
 
-#### Instalación y Configuración del Servidor Maestro:
-```bash
-# Definir dominio NIS
-sudo nisdomainname techmarket.local
-echo "techmarket.local" | sudo tee /etc/defaultdomain
-
-# Instalar paquetes
-sudo DEBIAN_FRONTEND=noninteractive apt install -y rpcbind nis
-
-# Configurar servidor maestro en /etc/default/nis
-sudo sed -i 's/^NISSERVER=.*/NISSERVER=master/' /etc/default/nis
-
-# Indicar servidor local en /etc/yp.conf
-echo "domain techmarket.local server 127.0.0.1" | sudo tee /etc/yp.conf
-
-# Permitir subredes en /etc/ypserv.securenets
-cat << 'EOF' | sudo tee /etc/ypserv.securenets
-255.0.0.0       127.0.0.0
-0.0.0.0         0.0.0.0
-EOF
-
-# Crear usuario corporativo
-sudo useradd -m -s /bin/bash tecnico_techmarket
-echo "tecnico_techmarket:TechMarket2026*" | sudo chpasswd
-
-# Reiniciar y compilar mapas
-sudo systemctl restart rpcbind ypserv yppasswdd
-sudo /usr/lib/yp/ypinit -m
-sudo systemctl restart ypserv yppasswdd ypbind
-```
-
-#### Comandos de Verificación:
-```bash
-# Validar mapas NIS activos
-ypwhich
-ypcat passwd | grep tecnico_techmarket
-```
-
-*En el Cliente Linux:*
-```bash
-# Ejecutar el script cliente provisto:
-sudo bash codigo/scripts/03_client_nis.sh <IP_SERVIDOR>
-
-# Validar resolución remota
-ypwhich
-id tecnico_techmarket
-```
-
-![NIS Auth](capturas/06_nis_auth.png)
+1. **Reemplazo de paquetes NTP heredados en versiones modernas de Ubuntu:**
+   * *Problema:* El paquete clásico `ntp` ya no posee candidato de instalación en los repositorios de Ubuntu Server actualizados.
+   * *Solución Implementada:* Se adaptó el script `01_install_ntp.sh` para utilizar **Chrony**, configurando directivas `allow 192.168.0.0/16` y enlazando servidores del pool sudamericano y colombiano con sincronización inmediata (`makestep 1 3`).
+2. **Concurrencia en el arranque de sockets en CUPS:**
+   * *Problema:* Al ejecutar `cupsctl --remote-admin`, el demonio de CUPS se reinicia, provocando que llamadas inmediatas a `lpadmin` devuelvan `Service Unavailable`.
+   * *Solución Implementada:* Se añadió la inicialización explícita de `cups.socket` y una pausa de estabilización de 2 segundos antes de provisionar las impresoras virtuales.
+3. **Persistencia del nombre de dominio NIS:**
+   * *Problema:* Tras reiniciar la máquina virtual, el comando `ypwhich` puede perder el dominio si no está fijado en disco.
+   * *Solución Implementada:* Se configuró permanentemente el archivo `/etc/defaultdomain` con la cadena `techmarket.local` y se parametrizó `/etc/ypserv.securenets` para evitar denegaciones de consulta local.
 
 ---
 
-### 3.7 Servidor de Impresión CUPS
+## 5. Preparación para la Sustentación Oral (Presentación de 15 Minutos)
 
-Gestiona las impresiones de guías de despacho, etiquetas de código de barras y facturación.
+Para la sustentación frente al docente, se estructuró la siguiente agenda cronometrada:
 
-#### Instalación y Configuración:
-```bash
-sudo apt install -y cups cups-client printer-driver-cups-pdf
-sudo usermod -aG lpadmin $USER
-
-# Habilitar administración remota y difusión de impresoras
-sudo cupsctl --remote-admin --remote-any --share-printers
-
-# Crear impresora de logística
-sudo lpadmin -p "TechMarket_Guias_Despacho" -E -v "cups-pdf:/" \
-             -D "Impresora de Guias TechMarket" -L "Bodega Armenia" -o printer-is-shared=true
-
-sudo systemctl restart cups
-sudo systemctl enable cups
+```
+[00:00 - 03:00]  1. Contexto de TECHMARKET S.A.S. y justificación de la arquitectura híbrida.
+[03:00 - 08:00]  2. Demostración en vivo:
+                    - Dokploy Dashboard (CPU/RAM y contenedores en ejecución).
+                    - Catálogo Web interactivo y persistencia de producto en PostgreSQL.
+                    - Montaje de carpeta Samba en macOS y colas de impresión CUPS.
+[08:00 - 12:00]  3. Explicación de decisiones de diseño:
+                    - ¿Por qué Dokploy en lugar de Kubernetes?
+                    - Separación de capas: Contenedores para web vs. Host para servicios de red.
+                    - Estrategia de seguridad (UFW, permisos departamentales y Stratum NTP).
+[12:00 - 15:00]  4. Análisis Costo-Beneficio y preguntas del evaluador.
 ```
 
-#### Comandos de Verificación:
-```bash
-# Listar impresoras y cola por defecto
-lpstat -p -d
+### 5.1 Análisis de Costo-Beneficio Defendido
 
-# Enviar trabajo de impresión de prueba desde terminal
-echo "Guia de Despacho #TM-2026-094 - Importacion Shenzhen" | lp -d TechMarket_Guias_Despacho
-lpstat -o
-```
-Acceder vía navegador a: `http://<IP_SERVIDOR>:631` para administrar colas e impresoras.
-
-![CUPS Web](capturas/07_cups_interface.png)
-
----
-
-### 3.8 Servidor Samba (Compartición para Windows y macOS)
-
-Organiza las carpetas compartidas con permisos específicos para Ventas, Importaciones, Bodega y Gerencia.
-
-#### Instalación y Configuración:
-```bash
-sudo apt install -y samba smbclient
-sudo cp codigo/configs/smb.conf /etc/samba/smb.conf
-```
-*(El script `05_install_samba.sh` crea automáticamente los grupos `admin`, `ventas`, `compras`, `bodega` y las contraseñas SMB).*
-
-```bash
-sudo systemctl restart smbd nmbd
-sudo systemctl enable smbd nmbd
-```
-
-#### Comandos de Verificación:
-*En el Servidor:*
-```bash
-smbclient -L localhost -N
-```
-
-*En Clientes Windows:*
-1. Presionar `Win + R` y escribir: `\\<IP_SERVIDOR>`
-2. Ingresar credenciales:
-   * Usuario: `juan_ventas` | Clave: `TechMarket2026*`
-   * Se observará acceso a la carpeta `[ventas]` y denegación de acceso a `[importaciones]`.
-   * Usuario: `carlos_import` | Clave: `TechMarket2026*`
-   * Se observará acceso a la carpeta confidencial `[importaciones]`.
-
-*En Clientes macOS:*
-1. En Finder presionar `Cmd + K`
-2. Conectar a: `smb://<IP_SERVIDOR>/general`
-
-![Samba Access](capturas/08_samba_access.png)
-
----
-
-### 3.9 Seguridad (Firewall UFW) y Backups Automáticos (Puntos Extra)
-
-#### Reglas del Firewall UFW:
-```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow 22/tcp   # SSH
-sudo ufw allow 80/tcp   # HTTP
-sudo ufw allow 443/tcp  # HTTPS
-sudo ufw allow 3000/tcp # Dokploy
-sudo ufw allow 8080/tcp # Web App
-sudo ufw allow 123/udp  # NTP
-sudo ufw allow 631/tcp  # CUPS
-sudo ufw allow 139/tcp  # Samba
-sudo ufw allow 445/tcp  # Samba
-sudo ufw allow 111      # RPC
-sudo ufw allow 2049     # NFS
-sudo ufw enable
-```
-
-#### Verificación del Firewall:
-```bash
-sudo ufw status verbose
-```
-
-#### Respaldo Diario Programado:
-El script `/usr/local/bin/backup_techmarket.sh` respalda:
-1. Todas las configuraciones críticas (`/etc/samba/smb.conf`, `/etc/exports`, `/etc/ntp.conf`, etc.).
-2. Volcado SQL completo de la base de datos PostgreSQL (`pg_dumpall`).
-3. Almacenamiento en `/srv/nfs/techmarket/backups/daily` con rotación automática de 7 días vía `cron`.
-
-![Firewall y Backup](capturas/09_ufw_firewall.png)
-
----
-
-## 4. Guía de Solución de Problemas (Troubleshooting)
-
-| Síntoma / Problema | Causa Probable | Solución Paso a Paso |
-| :--- | :--- | :--- |
-| **No se puede acceder al panel de Dokploy en el puerto 3000** | Firewall bloqueando el puerto o Docker no inició el contenedor. | Ejecutar `sudo ufw allow 3000/tcp` y verificar contenedores con `sudo docker ps`. Si el contenedor cayó, reiniciar con `sudo systemctl restart docker`. |
-| **El cliente NFS arroja "Connection timed out" o "Permission denied"** | El servicio RPC/NFS está bloqueado por firewall o IP no autorizada en `/etc/exports`. | Revisar `/etc/exports` asegurando `*(rw,sync,no_root_squash)` o la subred exacta. Ejecutar `sudo exportfs -ra` y abrir puertos con `sudo ufw allow 2049` y `sudo ufw allow 111`. |
-| **Error en NIS "ypwhich: Can't communicate with ypbind"** | Dominio NIS no coincide o `ypbind` no se enlazó al servidor. | Validar que el archivo `/etc/defaultdomain` contenga `techmarket.local`. Ejecutar `sudo nisdomainname techmarket.local` y reiniciar con `sudo systemctl restart rpcbind ypserv ypbind`. |
-| **Windows no puede conectarse a las carpetas Samba** | Bloqueo de SMB1 o nombres NetBIOS no resueltos. | Conectarse por dirección IP directa (`\\192.168.1.100\general`). Verificar que el usuario tenga clave SMB asignada mediante `sudo smbpasswd -a <usuario>`. |
-| **CUPS responde "403 Forbidden" en el navegador** | La directiva `cupsd.conf` restringe el acceso solo a localhost. | Ejecutar `sudo cupsctl --remote-admin --remote-any --share-printers` y reiniciar con `sudo systemctl restart cups`. |
-| **La aplicación web no conecta con PostgreSQL** | El contenedor de base de datos está iniciando o las credenciales no coinciden. | Verificar logs con `sudo docker logs techmarket_postgres`. Asegurar que las variables de entorno `DB_HOST`, `DB_USER` y `DB_PASSWORD` coincidan exactamente. |
-
----
-
-## 5. Decisiones de Diseño y Análisis de Costo-Beneficio (Sustentación de 15 Minutos)
-
-### 5.1 Decisiones de Diseño
-1. **Adopción de Dokploy sobre clústeres complejos (ej. Kubernetes):**
-   * Para una empresa mediana como TECHMARKET, un clúster de Kubernetes representaría un sobrecosto operativo injustificado. Dokploy brinda las ventajas de contenedores Docker, CI/CD y Traefik SSL con un consumo mínimo de recursos (apto para 2 vCPU y 4GB RAM).
-2. **Coexistencia de Servicios Contenerizados y Nativos:**
-   * Las aplicaciones web y bases de datos se benefician de la inmutabilidad y aislamiento de Docker.
-   * Los servicios de bajo nivel (NFS, Samba, NIS, CUPS, NTP) funcionan con mayor rendimiento, menor latencia y configuración directa como servicios del sistema host (`systemd`).
-3. **Esquema de Seguridad por Zonas:**
-   * Segmentación por grupos de usuarios Samba (`@ventas`, `@compras`, `@bodega`), protegiendo datos sensibles aduaneros y estados financieros.
-
-### 5.2 Análisis Costo-Beneficio
-
-| Rubro | Solución Tradicional / Cloud Pública | Solución Implementada (TechMarket On-Premise) | Beneficio para TECHMARKET |
+| Rubro Analizado | Enfoque Cloud Tradicional / Propietario | Enfoque Implementado (TECHMARKET) | Ahorro y Beneficio Tangible |
 | :--- | :--- | :--- | :--- |
-| **Licenciamiento SO** | Windows Server Datacenter (~$1.200 USD + CALs de usuario) | Ubuntu Server 22.04/24.04 LTS ($0 USD) | **Ahorro del 100% en licencias base.** Sin límite de CALs para usuarios Samba/NFS/NIS. |
-| **Hosting PaaS** | AWS ECS / Heroku / GCP Cloud Run (~$80-$150 USD/mes) | Dokploy PaaS Auto-alojado ($0 USD/mes) | Despliegues continuos ilimitados en el servidor local. |
-| **Servicio de Archivos** | Dropbox Business / Google Workspace (~$18 USD/usuario/mes) | Samba + NFS en almacenamiento local | Control total de privacidad sobre manifiestos DIAN y packing lists. |
-| **Seguridad y Respaldo**| Software comercial de backup (~$600 USD) | Bash automatizado + Cron + NFS | Respaldo diario sin costo de suscripción. |
-| **Retorno de Inversión (ROI)**| Costo proyectado Año 1: **~$6.500 USD** | Costo Año 1 (Hardware existente): **$0 USD en software** | **ROI inmediato:** La infraestructura se paga en el primer mes de operación. |
+| **Licencias de Servidor** | Windows Server Standard + CALs ($1.400 USD inicial) | Ubuntu Server 24.04 LTS ($0 USD) | **100% de ahorro** en licenciamiento base sin límites de clientes concurrentes. |
+| **Plataforma PaaS** | AWS ECS / Heroku Teams (~$120 USD/mes) | Dokploy PaaS Autoalojado ($0 USD/mes) | Despliegues continuos ilimitados en hardware propio. |
+| **Almacenamiento Colaborativo** | Google Workspace / Dropbox Business (~$180 USD/mes) | Samba + NFSv4 en almacenamiento local | **Privacidad total** para manifiestos de aduana y secretos comerciales. |
+| **Seguridad y Respaldo** | Software comercial de backup (~$500 USD anual) | Bash + Cron + NFS redundante ($0 USD) | Copias de seguridad automáticas diarias a las 02:00 AM. |
+| **Balance Económico** | **Costo Año 1: ~$4.500 USD** | **Costo Año 1: $0 USD en software** | **ROI Inmediato:** Inversión recuperada en el primer mes de operación. |

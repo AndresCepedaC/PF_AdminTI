@@ -1,44 +1,31 @@
 graph LR
-    %% Clientes y Red Local
-    subgraph CLIENTES ["Clientes y Estaciones de Trabajo"]
-        WIN_MAC["Estaciones Windows / Mac<br/>(Ventas, Compras, Gerencia)"]
-        LIN_CLI["Clientes Linux / Servidores<br/>(Terminales Técnicas y Bodega)"]
-        ADMIN_CLI["Estación Administrador TI"]
-    end
+    %% =========================================================================
+    %% ARQUITECTURA DE INFRAESTRUCTURA TI - TECHMARKET S.A.S.
+    %% Universidad del Quindío - 2026-1
+    %% =========================================================================
 
-    %% Perímetro y Enrutamiento Web
-    subgraph WEB_INFR ["Capa Web y PaaS (Dokploy / Docker)"]
-        TRAEFIK["Dokploy / Traefik<br/>Reverse Proxy (80/443)"]
-        PANEL["Dokploy Admin Panel<br/>(Puerto 3000)"]
-        WEB_SRV["Web Server TechMarket<br/>(Catálogo & Inventario)"]
-        DB_SRV[("PostgreSQL DB<br/>(Puerto 5432)")]
-    end
+    %% Entrada y Clientes
+    A[Red Local] --> B[Dokploy/Traefik]
+    A --> F[Servidor Linux]
 
-    %% Servidor Linux Tradicional
-    subgraph LINUX_BASE ["Servicios Linux Tradicionales (Host Ubuntu Server)"]
-        NTP_SRV["Servidor NTP / Chrony<br/>(Puerto 123 UDP)"]
-        NFS_SRV["Servidor NFS<br/>(Compartición Linux)"]
-        NIS_SRV["Servidor NIS Master<br/>(techmarket.local)"]
-        CUPS_SRV["Servidor CUPS<br/>(Impresión 631)"]
-        SAMBA_SRV["Servidor Samba SMB/CIFS<br/>(Carpetas por Área)"]
-    end
+    %% Capa Dokploy / Contenedores (PaaS)
+    B --> C[Web Server]
+    B --> D[Backend API & PostgreSQL]
+    B --> E[Panel Admin Dokploy :3000]
 
-    %% Relaciones Web
-    WIN_MAC -->|HTTP/HTTPS 80/443| TRAEFIK
-    ADMIN_CLI -->|Gestión Web 3000| PANEL
-    TRAEFIK -->|Proxy Pass| WEB_SRV
-    TRAEFIK -->|Proxy Interno| PANEL
-    WEB_SRV -->|Consultas SQL| DB_SRV
+    %% Capa Servicios Tradicionales del Sistema
+    F --> G[NTP / Chrony :123]
+    F --> H[NFS /srv/nfs :2049]
+    F --> I[NIS Master techmarket.local]
+    F --> J[CUPS Impresión :631]
+    F --> K[Samba SMB/CIFS :445]
 
-    %% Relaciones Servicios Base
-    LIN_CLI -->|Montaje /srv/nfs| NFS_SRV
-    LIN_CLI -->|Sincronización Tiempo| NTP_SRV
-    WIN_MAC -->|Sincronización Tiempo| NTP_SRV
-    LIN_CLI -->|Autenticación Centralizada| NIS_SRV
-    WIN_MAC -->|Carpetas Compartidas SMB| SAMBA_SRV
-    WIN_MAC -->|Colas de Impresión IPP/RAW| CUPS_SRV
-    LIN_CLI -->|Impresión de Guías/Etiquetas| CUPS_SRV
+    %% Enlaces a Clientes Finales
+    H --> L[Clientes NFS Linux]
+    K --> M[Clientes Windows/Mac]
+    I --> N[Autenticación Centralizada]
+    J --> O[Colas de Impresión de Despacho]
 
-    %% Enlaces Externos
-    INTERNET(("Internet / Proveedores<br/>USA & China")) -->|Tráfico Externo| TRAEFIK
-    NTP_SRV -.->|Sincronización Stratum| POOL_NTP["pool.ntp.org"]
+    %% Sincronización Externa y Conectividad
+    G -.-> P[pool.ntp.org Stratum 2]
+    Q[Internet / Proveedores USA & China] --> B

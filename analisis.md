@@ -5,6 +5,7 @@
 **Programa:** Ingeniería de Sistemas y Computación  
 **Asignatura:** Administración de Infraestructura de TI  
 **Semestre:** 2026-1  
+**Estudiante:** Andrés Cepeda (`theinge`)  
 **Empresa Seleccionada:** TECHMARKET S.A.S.  
 
 ---
@@ -29,7 +30,7 @@ Antes de la intervención, TECHMARKET operaba con servicios dispersos, equipos a
 
 ## 2. Justificación de los Servicios Propuestos
 
-Para solventar estos desafíos, se diseñó e implementó una infraestructura híbrida centralizada sobre **Ubuntu Server 22.04/24.04 LTS**, combinando la plataforma PaaS moderna **Dokploy** (para el despliegue ágil y seguro de servicios en contenedores) y **servicios nativos Linux empresariales** para la operación de red local.
+Para solventar estos desafíos, se diseñó e implementó una infraestructura híbrida centralizada sobre **Ubuntu Server 24.04/26.04 LTS (aarch64)**, combinando la plataforma PaaS moderna **Dokploy** (para el despliegue ágil y seguro de servicios en contenedores) y **servicios nativos Linux empresariales** para la operación de red local.
 
 ### 2.1 Dokploy (Plataforma PaaS y Reverse Proxy Traefik)
 * **Justificación:** TECHMARKET requiere agilidad en el despliegue y actualización de su portal corporativo y APIs sin incurrir en costos elevados de nubes públicas ni en la complejidad operativa de clústeres sobredimensionados. Dokploy proporciona una interfaz web centralizada con gestión de contenedores Docker, despliegue continuo vía repositorios Git (Nixpacks/Dockerfiles), monitoreo de métricas (CPU/RAM) y orquestación con Traefik como proxy inverso y terminador TLS/SSL automático (Let's Encrypt).
@@ -45,10 +46,10 @@ Para solventar estos desafíos, se diseñó e implementó una infraestructura h�
   1. Coherencia en los sellos de tiempo (*timestamps*) de facturación electrónica y validaciones aduaneras.
   2. Alineación de logs de eventos y auditoría en servidores y estaciones de trabajo para trazabilidad y seguridad.
   3. Previene errores de expiración prematura de tokens de sesión y certificados SSL/TLS.
-  Se configura un servidor NTP corporativo enlazado con la jerarquía `pool.ntp.org` (Stratum 2) que actúa como fuente de tiempo autoritativa para toda la red de TECHMARKET.
+  Se configura un servidor NTP corporativo enlazado con la jerarquía `pool.ntp.org` (Stratum 2, nodos Colombia y Sudamérica) que actúa como fuente de tiempo autoritativa para toda la red de TECHMARKET.
 
 ### 2.5 Compartición de Archivos para Linux (NFS - Network File System)
-* **Justificación:** Los servidores de backend, servidores de backups y estaciones técnicas de soporte (Ubuntu/Debian) necesitan acceder de forma transparente y con alto rendimiento a volúmenes compartidos. Se dispone de un recurso `/srv/nfs/techmarket` segmentado en directorios para `backups`, `catalogos` y `firmwares`, montado nativamente en clientes Linux vía protocolo NFSv4.
+* **Justificación:** Los servidores de backend, servidores de backups y estaciones técnicas de soporte (Ubuntu/Debian) necesitan acceder de forma transparente y con alto rendimiento a volúmenes compartidos. Se dispone de un recurso `/srv/nfs/techmarket` segmentado en directorios para `backups`, `catalogos` y `general`, montado nativamente en clientes Linux vía protocolo NFSv4.
 
 ### 2.6 Autenticación Centralizada de Usuarios (NIS - Network Information Service)
 * **Justificación:** Para evitar la creación repetitiva de cuentas de usuario en cada estación y servidor Linux del equipo técnico y de infraestructura, se implementa NIS como servicio de directorio ligero. Centraliza las credenciales (`passwd`, `group`, `hosts`) bajo el dominio corporativo `techmarket.local`, permitiendo que un administrador o técnico inicie sesión en cualquier terminal cliente con sus mismas credenciales.
@@ -57,28 +58,28 @@ Para solventar estos desafíos, se diseñó e implementó una infraestructura h�
 * **Justificación:** El área de logística y despacho de TECHMARKET emite constantemente guías de envío (servientrega, coordinadora, interrapidísimo), manifiestos aduaneros y facturas. CUPS centraliza y gestiona las colas de impresión, administrando prioridades, control de acceso web (puerto 631) y compatibilidad multiplataforma (IPP/RAW/PDF) para impresoras térmicas y láser.
 
 ### 2.8 Compartición de Archivos Multiplataforma (Samba / SMB-CIFS)
-* **Justificación:** Las estaciones de trabajo de los departamentos de Gerencia, Ventas, Contabilidad y Bodega utilizan mayoritariamente Windows 10/11 y macOS. Samba permite exponer recursos compartidos protegidos por contraseña (`smbpasswd`) y control de acceso basado en grupos de Linux (`@ventas`, `@contabilidad`, `@bodega`, `@admin`), asegurando que, por ejemplo, el personal de bodega solo edite despachos y el de contabilidad tenga acceso exclusivo a estados financieros y soportes aduaneros.
+* **Justificación:** Las estaciones de trabajo de los departamentos de Gerencia, Ventas, Contabilidad y Bodega utilizan mayoritariamente Windows 10/11 y macOS. Samba permite exponer recursos compartidos protegidos por contraseña (`smbpasswd`) y control de acceso basado en grupos de Linux (`@ventas`, `@compras`, `@bodega`, `@admin`), asegurando que, por ejemplo, el personal de bodega solo edite despachos y el de contabilidad/compras tenga acceso exclusivo a estados financieros y soportes aduaneros.
 
 ---
 
 ## 3. Tabla de Requisitos de Red y Servicios
 
-A continuación se detalla la matriz técnica de direccionamiento, protocolos y roles de la infraestructura de TECHMARKET S.A.S. (Segmento asignado de red local: `192.168.1.0/24` o `192.168.56.0/24` según adaptador de red de la VM):
+A continuación se detalla la matriz técnica de direccionamiento, puertos y roles verificados en la infraestructura de TECHMARKET S.A.S.:
 
-| Servicio | Nombre del Host / Contenedor | IP Asignada | Puerto(s) | Protocolo | Capa Transporte / App | Función Específica en TECHMARKET |
+| Servicio | Nombre del Host / Contenedor | Dirección IP | Puerto(s) | Protocolo | Capa Transporte / App | Función Específica en TECHMARKET |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Gateway / Router** | `gw-techmarket` | `192.168.1.1` | - | - | Red | Salida a Internet y resolución DNS externa |
-| **Servidor Principal** | `srv-infra.techmarket.local` | `192.168.1.100` | - | - | Sistema Base | Servidor Ubuntu 22.04/24.04 LTS (2 vCPU, 4GB RAM) |
-| **Panel Dokploy** | `dokploy.techmarket.local` | `192.168.1.100` | 3000 | TCP | HTTP / Web | Panel de administración PaaS, monitoreo y CI/CD |
-| **Proxy Traefik** | `srv-infra.techmarket.local` | `192.168.1.100` | 80, 443 | TCP | HTTP / HTTPS | Enrutamiento perimetral, SSL/TLS Let's Encrypt |
-| **Web Institucional** | `app.techmarket.local` | `192.168.1.100` (Contenedor) | 80/443 (vía Traefik) / 8080 | TCP | HTTP / HTTPS | Catálogo interactivo de productos importados y stock |
-| **Base de Datos** | `db-techmarket` | `192.168.1.100` (Docker) | 5432 | TCP | PostgreSQL | Almacenamiento de catálogo, importaciones y pedidos |
-| **Servidor NTP** | `srv-infra.techmarket.local` | `192.168.1.100` | 123 | UDP | NTP | Sincronización horaria para servidores y clientes |
-| **Servidor NFS** | `srv-infra.techmarket.local` | `192.168.1.100` | 2049, 111 | TCP/UDP | NFSv4 / RPC | Compartición de imágenes de catálogo y backups Linux |
-| **Servidor NIS** | `srv-infra.techmarket.local` | `192.168.1.100` | 111, 834, 835 | TCP/UDP | Portmapper / YP | Autenticación centralizada (`techmarket.local`) |
-| **Servidor CUPS** | `srv-infra.techmarket.local` | `192.168.1.100` | 631 | TCP | IPP / HTTP | Cola e impresión de guías y facturas de despacho |
-| **Servidor Samba** | `srv-infra.techmarket.local` | `192.168.1.100` | 139, 445 | TCP | NetBIOS / SMB | Carpetas compartidas de ventas, compras y gerencia |
-| **SSH Administrativo**| `srv-infra.techmarket.local` | `192.168.1.100` | 22 | TCP | SSH | Gestión remota segura por terminal |
+| **Servidor Principal** | `srv-infra.techmarket.local` | `192.168.1.109` | - | - | Sistema Base | Servidor Ubuntu Server 24.04/26.04 (2 vCPUs, 4GB RAM) |
+| **Panel Dokploy** | `dokploy.techmarket.local` | `192.168.1.109` | 3000 | TCP | HTTP / Web | Panel de administración PaaS, monitoreo y CI/CD |
+| **Proxy Traefik** | `srv-infra.techmarket.local` | `192.168.1.109` | 80, 443 | TCP | HTTP / HTTPS | Enrutamiento perimetral, SSL/TLS Let's Encrypt |
+| **Web Institucional** | `app.techmarket.local` | `192.168.1.109` | 8080 (o 80/443 Traefik) | TCP | HTTP / HTTPS | Catálogo interactivo de productos importados y stock |
+| **Base de Datos** | `techmarket_postgres` | `192.168.1.109` | 5432 | TCP | PostgreSQL 16 | Almacenamiento de catálogo, importaciones y pedidos |
+| **Servidor NTP** | `srv-infra.techmarket.local` | `192.168.1.109` | 123 | UDP | NTP / Chrony | Sincronización horaria (Stratum 2 Sudamérica/Colombia) |
+| **Servidor NFS** | `srv-infra.techmarket.local` | `192.168.1.109` | 2049, 111 | TCP/UDP | NFSv4 / RPC | Compartición de imágenes de catálogo y backups Linux |
+| **Servidor NIS** | `srv-infra.techmarket.local` | `192.168.1.109` | 111, 834, 835 | TCP/UDP | Portmapper / YP | Autenticación centralizada (`techmarket.local`) |
+| **Servidor CUPS** | `srv-infra.techmarket.local` | `192.168.1.109` | 631 | TCP | IPP / HTTP | Cola e impresión de guías y facturas de despacho |
+| **Servidor Samba** | `srv-infra.techmarket.local` | `192.168.1.109` | 139, 445 | TCP | NetBIOS / SMB | Carpetas compartidas de ventas, compras y bodega |
+| **SSH Remoto** | `srv-infra.techmarket.local` | `192.168.1.109` | 22 | TCP | SSH | Gestión remota segura por terminal |
 
 ---
 
@@ -88,15 +89,40 @@ Para garantizar el principio de menor privilegio, se establecen los siguientes g
 
 | Grupo | Miembros | Carpeta Samba Asignada | Permisos | Propósito |
 | :--- | :--- | :--- | :--- | :--- |
-| `admin` | `admin_tech` | `/srv/samba/techmarket/general` y raíz | R/W completo | Administración integral de la infraestructura |
-| `ventas` | `juan_ventas`, `carolina_ventas` | `/srv/samba/techmarket/ventas` | R/W en ventas, R en catálogo | Listas de precios, pedidos de clientes locales |
-| `compras` | `carlos_import`, `laura_import` | `/srv/samba/techmarket/importaciones`| R/W en importaciones | Documentos aduaneros, packing lists de USA/China |
-| `bodega` | `pedro_logistica` | `/srv/samba/techmarket/despachos` | R/W en despachos, impresión CUPS | Guías de despacho, seriales físicos de mercancía |
+| `admin` | `admin_tech`, `theinge` | `/srv/samba/techmarket/general` y raíz | R/W completo | Administración integral de la infraestructura |
+| `ventas` | `juan_ventas` | `/srv/samba/techmarket/ventas` | R/W en ventas, R en general | Listas de precios, pedidos de clientes locales |
+| `compras` | `carlos_import` | `/srv/samba/techmarket/importaciones`| R/W en importaciones | Documentos aduaneros, packing lists de USA/China |
+| `bodega` | `pedro_bodega` | `/srv/samba/techmarket/despachos` | R/W en despachos, impresión CUPS | Guías de despacho, seriales físicos de mercancía |
 
 ---
 
-## 5. Arquitectura Lógica de la Solución
+## 5. Diagrama de Arquitectura de Infraestructura
 
-El servidor integra dos capas fundamentales:
-1. **Capa Contenerizada (Dokploy & Traefik):** Aísla los servicios expuestos hacia la red web (portal de productos y base de datos) en una red interna de Docker (`dokploy-network`), controlada por Traefik para gestión automática de certificados SSL.
-2. **Capa de Servicios del Sistema Operativo Host (Linux Tradicional):** Los servicios de infraestructura de red (NTP, NFS, NIS, CUPS, Samba) corren directamente sobre Ubuntu Server con control de acceso por UFW, proveyendo baja latencia y alta estabilidad para los clientes de la red corporativa.
+```mermaid
+graph LR
+    %% Entrada y Clientes
+    A[Red Local] --> B[Dokploy/Traefik]
+    A --> F[Servidor Linux]
+
+    %% Capa Dokploy / Contenedores (PaaS)
+    B --> C[Web Server]
+    B --> D[Backend API & PostgreSQL]
+    B --> E[Panel Admin Dokploy :3000]
+
+    %% Capa Servicios Tradicionales del Sistema
+    F --> G[NTP / Chrony :123]
+    F --> H[NFS /srv/nfs :2049]
+    F --> I[NIS Master techmarket.local]
+    F --> J[CUPS Impresión :631]
+    F --> K[Samba SMB/CIFS :445]
+
+    %% Enlaces a Clientes Finales
+    H --> L[Clientes NFS Linux]
+    K --> M[Clientes Windows/Mac]
+    I --> N[Autenticación Centralizada]
+    J --> O[Colas de Impresión de Despacho]
+
+    %% Sincronización Externa y Conectividad
+    G -.-> P[pool.ntp.org Stratum 2]
+    Q[Internet / Proveedores USA & China] --> B
+```
