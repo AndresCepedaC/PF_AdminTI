@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: techmarket_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: techmarket_db
+      POSTGRES_USER: techmarket_admin
+      POSTGRES_PASSWORD: TechMarket2026Secure!
+    volumes:
+      - techmarket_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - techmarket_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techmarket_admin -d techmarket_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: techmarket_web_app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: techmarket_admin
+      DB_PASSWORD: TechMarket2026Secure!
+      DB_NAME: techmarket_db
+      NODE_ENV: production
+    ports:
+      - "8080:8080"
+    networks:
+      - techmarket_net
+
+networks:
+  techmarket_net:
+    driver: bridge
+
+volumes:
+  techmarket_db_data:

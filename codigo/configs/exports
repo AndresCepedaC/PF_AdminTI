@@ -1,0 +1,6 @@
+# /etc/exports - Recursos NFS para TECHMARKET S.A.S.
+# Acceso para la subred local con permisos de lectura/escritura y sincronización estricta
+
+/srv/nfs/techmarket/general     192.168.0.0/16(rw,sync,no_subtree_check,no_root_squash) 10.0.0.0/8(rw,sync,no_subtree_check,no_root_squash)
+/srv/nfs/techmarket/catalogos   192.168.0.0/16(rw,sync,no_subtree_check,no_root_squash) 10.0.0.0/8(rw,sync,no_subtree_check,no_root_squash)
+/srv/nfs/techmarket/backups     192.168.0.0/16(rw,sync,no_subtree_check,no_root_squash) 10.0.0.0/8(rw,sync,no_subtree_check,no_root_squash)

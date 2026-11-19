@@ -1,0 +1,14 @@
+{
+  "name": "techmarket-web",
+  "version": "1.0.0",
+  "description": "Portal Institucional y Catálogo de Importaciones de TechMarket S.A.S.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "cors": "^2.8.5"
+  }
+}

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TECHMARKET S.A.S. | Portal de Importaciones y Tecnología</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header Corporativo -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <div class="brand-text">
+          <span class="brand-name">TECHMARKET</span>
+          <span class="brand-sub">Importaciones Directas USA & China</span>
+        </div>
+      </div>
+      <div class="nav-badges">
+        <div class="badge badge-infra" id="status-infra">
+          <span class="indicator live"></span>
+          <span>Dokploy PaaS | Ubuntu 24.04</span>
+        </div>
+        <div class="badge badge-db" id="status-db">
+          <span class="indicator wait"></span>
+          <span id="db-label">PostgreSQL: Conectando...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="tagline">Infraestructura Corporativa Centralizada</div>
+      <h1>Catálogo Mayorista de Tecnología de Vanguardia</h1>
+      <p>Gestión automatizada de importaciones desde Shenzhen y Florida con distribución y soporte técnico en Armenia, Quindío.</p>
+      
+      <!-- Panel de Diagnóstico de Infraestructura -->
+      <div class="infra-pills">
+        <div class="pill">
+          <strong>NTP Sync:</strong> <span id="clock-display">Sincronizando...</span>
+        </div>
+        <div class="pill">
+          <strong>Autenticación:</strong> NIS <code>techmarket.local</code>
+        </div>
+        <div class="pill">
+          <strong>Almacenamiento:</strong> NFSv4 & Samba SMB
+        </div>
+        <div class="pill">
+          <strong>Impresión:</strong> CUPS <code>:631/printers</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contenedor Principal -->
+  <main class="main-container">
+    <!-- Filtros y Métricas -->
+    <section class="controls-bar">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar por SKU, producto o marca...">
+      </div>
+      <div class="filter-categories" id="categoryFilters">
+        <button class="filter-btn active" data-category="all">Todos</button>
+        <button class="filter-btn" data-category="Laptops & Equipos">Laptops</button>
+        <button class="filter-btn" data-category="Componentes & GPU">Componentes</button>
+        <button class="filter-btn" data-category="Periféricos & Accesorios">Periféricos</button>
+        <button class="filter-btn" data-category="Móviles & Gadgets">Móviles</button>
+        <button class="filter-btn" data-category="Almacenamiento">Almacenamiento</button>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="btnOpenModal">+ Nuevo Producto</button>
+      </div>
+    </section>
+
+    <!-- Resumen de Estadísticas -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Total Referencias en Stock</div>
+        <div class="stat-val" id="stat-total-items">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Importaciones Activas</div>
+        <div class="stat-val" id="stat-origins">USA / China</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Origen de Datos Actual</div>
+        <div class="stat-val text-accent" id="stat-source">Consultando...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Seguridad Perimetral</div>
+        <div class="stat-val text-success">SSL/TLS Traefik</div>
+      </div>
+    </div>
+
+    <!-- Grid de Productos -->
+    <section class="products-grid" id="productsGrid">
+      <div class="loading-state">Cargando catálogo desde PostgreSQL...</div>
+    </section>
+  </main>
+
+  <!-- Modal para Agregar Producto -->
+  <div class="modal" id="productModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Registrar Nuevo Producto Importado</h3>
+        <button class="modal-close" id="btnCloseModal">&times;</button>
+      </div>
+      <form id="productForm">
+        <div class="form-group">
+          <label>Nombre del Producto *</label>
+          <input type="text" id="form-name" required placeholder="Ej. Monitor ASUS ROG 27' 240Hz">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoría *</label>
+            <select id="form-category" required>
+              <option value="Laptops & Equipos">Laptops & Equipos</option>
+              <option value="Componentes & GPU">Componentes & GPU</option>
+              <option value="Periféricos & Accesorios">Periféricos & Accesorios</option>
+              <option value="Móviles & Gadgets">Móviles & Gadgets</option>
+              <option value="Almacenamiento">Almacenamiento</option>
+              <option value="Redes & Conectividad">Redes & Conectividad</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>País / Puerto de Origen *</label>
+            <input type="text" id="form-origin" required placeholder="Ej. China (Shenzhen)">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Precio de Venta COP *</label>
+            <input type="number" id="form-price" required min="1000" step="1000" placeholder="1500000">
+          </div>
+          <div class="form-group">
+            <label>Unidades en Stock *</label>
+            <input type="number" id="form-stock" required min="0" value="10">
+          </div>
+          <div class="form-group">
+            <label>SKU / Serial Único *</label>
+            <input type="text" id="form-sku" required placeholder="CHN-ASUS-27ROG">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción y Especificaciones</label>
+          <textarea id="form-desc" rows="3" placeholder="Detalles de embalaje, garantía legal y especificaciones técnicas..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitForm">Guardar en Base de Datos</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <p><strong>TECHMARKET S.A.S.</strong> — NIT 901.845.290-3 | Armenia, Quindío, Colombia.</p>
+      <p>Proyecto Final de Administración de Infraestructura de TI — Universidad del Quindío (2026-1)</p>
+      <div class="tech-stack-tags">
+        <span>Dokploy PaaS</span>
+        <span>Ubuntu Server</span>
+        <span>Docker Engine</span>
+        <span>PostgreSQL 16</span>
+        <span>Traefik Reverse Proxy</span>
+        <span>NTP</span>
+        <span>NFSv4</span>
+        <span>NIS YP</span>
+        <span>CUPS IPP</span>
+        <span>Samba CIFS</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
